@@ -33,21 +33,27 @@
 
         devShells.default = pkgs.mkShellNoCC {
           packages = [
-            (pkgs.writeShellScriptBin "run-ci" ''
-              set -x
+            (pkgs.writeShellApplication {
+              name = "run-ci";
 
-              exec ${lib.getExe config.procfiles.daemons.package} &
-              sleep 5 # avoid race conditions
+              runtimeInputs = [pkgs.overmind];
 
-              if ! overmind status | grep running; then
-                echo "Processes failed to launch! Exiting with error"
+              text = ''
+                set -x
+
+                exec ${lib.getExe config.procfiles.daemons.package} &
+                sleep 5 # avoid race conditions
+
+                if ! overmind status | grep running; then
+                  echo "Processes failed to launch! Exiting with error"
+                  overmind kill
+                  exit 1
+                fi
+
                 overmind kill
-                exit 1
-              fi
-
-              overmind kill
-              echo "Process finished! Exiting as success"
-            '')
+                echo "Process finished! Exiting as success"
+              '';
+            })
           ];
         };
       };
