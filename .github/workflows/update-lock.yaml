@@ -38,7 +38,7 @@ jobs:
 
       - name: Update test flake inputs
         run: |
-          pushd ./dev
+          pushd ./test
 
           nix flake update \
             --commit-lock-file \
