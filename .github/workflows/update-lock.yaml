@@ -22,6 +22,11 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@cd46bde16ab981b0a7b2dce0574509104543276e # v9
 
+      - name: Set Git user info
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
       - name: Create new branch
         id: branch
         run: |
