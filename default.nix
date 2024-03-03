@@ -23,21 +23,21 @@ in
       );
 
     mkRunCommand = procRunner: procfile: let
-      procRunnerName = (builtins.parseDrvName procRunner).name;
+      procRunnerName = (builtins.parseDrvName procRunner.name).name;
       procRunners = {
         overmind = ''
           set -x
           overmind start -f ${procfile} --root "$PWD" "$@"
         '';
 
-        prox = ''
-          echo blah blah
+        honcho = ''
+          set -x
+          honcho start -f ${procfile}
         '';
 
         default = "${lib.getExe procRunner} ${procfile}";
       };
-    in builtins.trace procfile procfile;
-      # procRunners."${procRunnerName}" or procRunners.default;
+    in procRunners."${procRunnerName}" or procRunners.default;
 
   in {
     mkProcfileRunner = {
@@ -45,7 +45,7 @@ in
       procGroup,
       procRunner,
     }: let
-      procFile = (pkgs.writeText name (toProcfile procGroup));
+      procFile = (pkgs.writeText "Procfile" (toProcfile procGroup));
     in
       pkgs.writeShellApplication {
         inherit name;

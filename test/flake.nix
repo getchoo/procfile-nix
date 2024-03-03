@@ -38,34 +38,59 @@
             ];
           };
 
-        overmindTestScript = exe: ''
+        testScript = exe: check: kill: ''
           set -x
 
           exec ${exe} &
-          sleep 5 # avoid race conditions
+          PROC_PID=$!
+          sleep 3 # avoid race conditions
 
-          if ! overmind status | grep running; then
+          if ${check}; then
             echo "Processes failed to launch! Exiting with error"
-            overmind kill
+            ${kill}
             exit 1
           fi
 
-          overmind kill
+          ${kill}
           echo "Process finished! Exiting as success"
         '';
 
-        redisProc = {
+        dummyProc = {
           redis = lib.getExe' pkgs.redis "redis-server";
         };
       in {
-        procfiles.overmind-dft.processes = redisProc;
-        devShells.overmind-dft = mkTestShell [pkgs.overmind] (overmindTestScript (lib.getExe config.procfiles.overmind-dft.package));
+        # overmind as default
+        procfiles.overmind-dft.processes = dummyProc;
+        devShells.overmind-dft = mkTestShell [pkgs.overmind] (
+          testScript
+            (lib.getExe config.procfiles.overmind-dft.package)
+            "! overmind status | grep running"
+            "overmind kill"
+          );
 
+        # explicit overmind
         procfiles.overmind = {
-          processes = redisProc;
+          processes = dummyProc;
           procRunner = pkgs.overmind;
         };
-        devShells.overmind = mkTestShell [pkgs.overmind] (overmindTestScript (lib.getExe config.procfiles.overmind.package));
+        devShells.overmind = mkTestShell [pkgs.overmind] (
+          testScript
+            (lib.getExe config.procfiles.overmind-dft.package)
+            "! overmind status | grep running"
+            "overmind kill"
+          );
+
+        # honcho
+        procfiles.honcho = {
+          processes = dummyProc;
+          procRunner = pkgs.honcho;
+        };
+        devShells.honcho = mkTestShell [pkgs.honcho] (
+          testScript
+            (lib.getExe config.procfiles.honcho.package)
+            "ps -p \"$PROC_PID\" > /dev/null"
+            "kill -2 $PROC_PID"
+        );
       };
     };
 }
