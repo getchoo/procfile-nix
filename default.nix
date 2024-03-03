@@ -21,17 +21,35 @@ in
       lib.concatLines (
         lib.mapAttrsToList (name: cmd: "${name}: ${cmd}") procGroup
       );
+
+    mkRunCommand = procRunner: procfile: let
+      procRunnerName = (builtins.parseDrvName procRunner).name;
+      procRunners = {
+        overmind = ''
+          set -x
+          overmind start -f ${procfile} --root "$PWD" "$@"
+        '';
+
+        prox = ''
+          echo blah blah
+        '';
+
+        default = "${lib.getExe procRunner} ${procfile}";
+      };
+    in builtins.trace procfile procfile;
+      # procRunners."${procRunnerName}" or procRunners.default;
+
   in {
     mkProcfileRunner = {
       name,
       procGroup,
-    }:
+      procRunner,
+    }: let
+      procFile = (pkgs.writeText name (toProcfile procGroup));
+    in
       pkgs.writeShellApplication {
         inherit name;
-        runtimeInputs = [pkgs.overmind];
-        text = ''
-          set -x
-          overmind start -f ${pkgs.writeText name (toProcfile procGroup)} --root "$PWD" "$@"
-        '';
+        runtimeInputs = [procRunner];
+        text = mkRunCommand procRunner procFile;
       };
   }

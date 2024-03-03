@@ -25,4 +25,6 @@ jobs:
         run: |
           set -eux
 
-          nix develop ./test --command 'run-ci'
+          nix develop ./test#overmind --command 'run-ci'
+          nix develop ./test#overmind-dft --command 'run-ci'
+          nix develop ./test#prox --command 'run-ci'

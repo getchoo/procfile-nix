@@ -20,6 +20,7 @@ self: {
     config,
     name,
     system,
+    pkgs,
     ...
   }: {
     options = {
@@ -34,6 +35,15 @@ self: {
         '';
       };
 
+      procRunner = mkOption {
+        type = types.package;
+        description = mdDoc ''
+          The Procfile runner to use. Default: overmind. supports: overmind, prox. If using an unsupported procRunner,
+          the Procfile path will be passed as an argument to the procRunner.
+        '';
+        default = pkgs.overmind;
+      };
+
       package = mkOption {
         type = types.package;
         description = mdDoc "Final package containing runner for Procfile";
@@ -45,27 +55,46 @@ self: {
       package = self.lib.${system}.mkProcfileRunner {
         inherit name;
         procGroup = config.processes;
+        procRunner = config.procRunner;
       };
     };
   };
 in {
   options = {
-    perSystem = mkPerSystemOption ({system, ...}: {
-      options.procfiles = mkOption {
-        type = types.attrsOf (types.submoduleWith {
-          modules = [procfileSubmodule];
-          specialArgs = {inherit system;};
-        });
+    perSystem = mkPerSystemOption ({
+      system,
+      pkgs,
+      ...
+    }: {
+      options = {
+        procRunner = mkOption {
+          type = types.package;
+          default = pkgs.overmind;
+          description = mdDoc "The Procfile runner to use. Default: overmind, supports: overmind, prox";
+          example = literalExpression ''
+            daemons = {
+              processes.redis = lib.getExe' pkgs.redis "redis-server";
+              procRunner = pkgs.prox;
+            };
+          '';
+        };
 
-        default = {};
-        description = mdDoc "Attribute set containing procfile declarations";
-        example = literalExpression ''
-          {
-            daemons.processes = {
-              redis = lib.getExe' pkgs.redis "redis-server";
-          	};
-          }
-        '';
+        procfiles = mkOption {
+          type = types.attrsOf (types.submoduleWith {
+            modules = [procfileSubmodule];
+            specialArgs = {inherit system pkgs;};
+          });
+
+          default = {};
+          description = mdDoc "Attribute set containing procfile declarations";
+          example = literalExpression ''
+            {
+              daemons.processes = {
+                redis = lib.getExe' pkgs.redis "redis-server";
+            	};
+            }
+          '';
+        };
       };
     });
   };

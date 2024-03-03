@@ -26,36 +26,46 @@
         lib,
         pkgs,
         ...
-      }: {
-        procfiles.daemons.processes = {
+      }: let
+        mkTestShell = runtimeInputs: text:
+          pkgs.mkShellNoCC {
+            packages = [
+              (pkgs.writeShellApplication {
+                name = "run-ci";
+
+                inherit runtimeInputs text;
+              })
+            ];
+          };
+
+        overmindTestScript = exe: ''
+          set -x
+
+          exec ${exe} &
+          sleep 5 # avoid race conditions
+
+          if ! overmind status | grep running; then
+            echo "Processes failed to launch! Exiting with error"
+            overmind kill
+            exit 1
+          fi
+
+          overmind kill
+          echo "Process finished! Exiting as success"
+        '';
+
+        redisProc = {
           redis = lib.getExe' pkgs.redis "redis-server";
         };
+      in {
+        procfiles.overmind-dft.processes = redisProc;
+        devShells.overmind-dft = mkTestShell [pkgs.overmind] (overmindTestScript (lib.getExe config.procfiles.overmind-dft.package));
 
-        devShells.default = pkgs.mkShellNoCC {
-          packages = [
-            (pkgs.writeShellApplication {
-              name = "run-ci";
-
-              runtimeInputs = [pkgs.overmind];
-
-              text = ''
-                set -x
-
-                exec ${lib.getExe config.procfiles.daemons.package} &
-                sleep 5 # avoid race conditions
-
-                if ! overmind status | grep running; then
-                  echo "Processes failed to launch! Exiting with error"
-                  overmind kill
-                  exit 1
-                fi
-
-                overmind kill
-                echo "Process finished! Exiting as success"
-              '';
-            })
-          ];
+        procfiles.overmind = {
+          processes = redisProc;
+          procRunner = pkgs.overmind;
         };
+        devShells.overmind = mkTestShell [pkgs.overmind] (overmindTestScript (lib.getExe config.procfiles.overmind.package));
       };
     };
 }
