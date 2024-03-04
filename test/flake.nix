@@ -38,12 +38,11 @@
             ];
           };
 
-        testScript = exe: check: kill: ''
+        testScript = exe: check: kill:  ''
           set -x
 
-          exec ${exe} &
-          PROC_PID=$!
-          sleep 3 # avoid race conditions
+          ${exe}
+          sleep 5 # avoid race conditions
 
           if ${check}; then
             echo "Processes failed to launch! Exiting with error"
@@ -63,7 +62,7 @@
         procfiles.overmind-dft.processes = dummyProc;
         devShells.overmind-dft = mkTestShell [pkgs.overmind] (
           testScript
-            (lib.getExe config.procfiles.overmind-dft.package)
+            "exec ${(lib.getExe config.procfiles.overmind-dft.package)} &"
             "! overmind status | grep running"
             "overmind kill"
           );
@@ -75,7 +74,7 @@
         };
         devShells.overmind = mkTestShell [pkgs.overmind] (
           testScript
-            (lib.getExe config.procfiles.overmind-dft.package)
+            "exec ${(lib.getExe config.procfiles.overmind.package)} &"
             "! overmind status | grep running"
             "overmind kill"
           );
@@ -87,7 +86,10 @@
         };
         devShells.honcho = mkTestShell [pkgs.honcho] (
           testScript
-            (lib.getExe config.procfiles.honcho.package)
+            ''
+            exec ${(lib.getExe config.procfiles.honcho.package)} & \
+            PROC_PID=$!
+            ''
             "! ps -p \"$PROC_PID\" > /dev/null"
             "kill -2 $PROC_PID; pkill -f \"redis\""
         );

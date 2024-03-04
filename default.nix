@@ -43,7 +43,7 @@ in
     mkProcfileRunner = {
       name,
       procGroup,
-      procRunner,
+      procRunner ? pkgs.honcho,
     }: let
       procFile = (pkgs.writeText "Procfile" (toProcfile procGroup));
     in
