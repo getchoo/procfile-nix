@@ -88,8 +88,8 @@
         devShells.honcho = mkTestShell [pkgs.honcho] (
           testScript
             (lib.getExe config.procfiles.honcho.package)
-            "ps -p \"$PROC_PID\" > /dev/null"
-            "kill -2 $PROC_PID"
+            "! ps -p \"$PROC_PID\" > /dev/null"
+            "kill -2 $PROC_PID; pkill -f \"redis\""
         );
       };
     };

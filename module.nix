@@ -38,7 +38,7 @@ self: {
       procRunner = mkOption {
         type = types.package;
         description = mdDoc ''
-          The Procfile runner to use. Default: overmind. supports: overmind, prox. If using an unsupported procRunner,
+          The Procfile runner to use. Default: overmind. supports: overmind, honcho. If using an unsupported procRunner,
           the Procfile path will be passed as an argument to the procRunner.
         '';
         default = pkgs.overmind;
@@ -70,11 +70,11 @@ in {
         procRunner = mkOption {
           type = types.package;
           default = pkgs.overmind;
-          description = mdDoc "The Procfile runner to use. Default: overmind, supports: overmind, prox";
+          description = mdDoc "The Procfile runner to use. Default: overmind, supports: overmind, honcho";
           example = literalExpression ''
             daemons = {
               processes.redis = lib.getExe' pkgs.redis "redis-server";
-              procRunner = pkgs.prox;
+              procRunner = pkgs.honcho;
             };
           '';
         };
