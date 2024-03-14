@@ -23,33 +23,30 @@ in
       );
 
     mkRunCommand = procRunner: procfile: let
-      procRunnerName = (builtins.parseDrvName procRunner.name).name;
-      procRunners = {
-        overmind = ''
-          set -x
-          overmind start -f ${procfile} --root "$PWD" "$@"
-        '';
-
-        honcho = ''
-          set -x
-          honcho start -f ${procfile}
-        '';
-
-        default = "${lib.getExe procRunner} ${procfile}";
-      };
-    in procRunners."${procRunnerName}" or procRunners.default;
-
+      inherit (builtins.parseDrvName procRunner.name) name;
+      default = "${lib.getExe procRunner} ${procfile}";
+    in
+      # special cases for officially supported procfile runners
+      {
+        overmind = ''overmind start -f ${procfile} --root "$PWD" "$@"'';
+        honcho = ''honcho start -f ${procfile} --app-root "$PWD" "$@"'';
+      }
+      .${name}
+      or default;
   in {
     mkProcfileRunner = {
       name,
       procGroup,
-      procRunner ? pkgs.honcho,
-    }: let
-      procFile = (pkgs.writeText "Procfile" (toProcfile procGroup));
-    in
+      procRunner ? pkgs.overmind,
+    }:
       pkgs.writeShellApplication {
         inherit name;
         runtimeInputs = [procRunner];
-        text = mkRunCommand procRunner procFile;
+        text = ''
+          set -x
+          ${mkRunCommand procRunner (
+            pkgs.writeText "Procfile" (toProcfile procGroup)
+          )}
+        '';
       };
   }
