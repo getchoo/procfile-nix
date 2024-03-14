@@ -26,35 +26,78 @@
         lib,
         pkgs,
         ...
-      }: {
-        procfiles.daemons.processes = {
+      }: let
+        mkTestShell = runtimeInputs: text:
+          pkgs.mkShellNoCC {
+            packages = [
+              (pkgs.writeShellApplication {
+                name = "run-ci";
+
+                inherit runtimeInputs text;
+              })
+            ];
+          };
+
+        testScript = exe: check: kill: ''
+          set -x
+
+          ${exe}
+          sleep 5 # avoid race conditions
+
+          if ${check}; then
+            echo "Processes failed to launch! Exiting with error"
+            ${kill}
+            exit 1
+          fi
+
+          ${kill}
+          echo "Process finished! Exiting as success"
+        '';
+
+        processes = {
           redis = lib.getExe' pkgs.redis "redis-server";
         };
+      in {
+        procfiles = {
+          # overmind as default
+          overmind-dft = {inherit processes;};
 
-        devShells.default = pkgs.mkShellNoCC {
-          packages = [
-            (pkgs.writeShellApplication {
-              name = "run-ci";
+          # explicit overmind
+          overmind = {
+            inherit processes;
+            procRunner = pkgs.overmind;
+          };
 
-              runtimeInputs = [pkgs.overmind];
+          # honcho
+          honcho = {
+            inherit processes;
+            procRunner = pkgs.honcho;
+          };
+        };
 
-              text = ''
-                set -x
+        devShells = {
+          overmind-dft = mkTestShell [pkgs.overmind] (
+            testScript
+            "exec ${(lib.getExe config.procfiles.overmind-dft.package)} &"
+            "! overmind status | grep running"
+            "overmind kill"
+          );
 
-                exec ${lib.getExe config.procfiles.daemons.package} &
-                sleep 5 # avoid race conditions
-
-                if ! overmind status | grep running; then
-                  echo "Processes failed to launch! Exiting with error"
-                  overmind kill
-                  exit 1
-                fi
-
-                overmind kill
-                echo "Process finished! Exiting as success"
-              '';
-            })
-          ];
+          overmind = mkTestShell [pkgs.overmind] (
+            testScript
+            "exec ${(lib.getExe config.procfiles.overmind.package)} &"
+            "! overmind status | grep running"
+            "overmind kill"
+          );
+          honcho = mkTestShell [pkgs.honcho] (
+            testScript
+            ''
+              exec ${(lib.getExe config.procfiles.honcho.package)} & \
+              PROC_PID=$!
+            ''
+            "! ps -p \"$PROC_PID\" > /dev/null"
+            "kill -2 $PROC_PID; pkill -f \"redis\""
+          );
         };
       };
     };

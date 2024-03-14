@@ -1,6 +1,6 @@
 # procfile-nix
 
-A library + [flake-parts](https://flake.parts/) module that helps you manage procfiles and background jobs with [overmind](https://github.com/DarthSim/overmind)!
+A library + [flake-parts](https://flake.parts/) module that helps you manage procfiles and background jobs with [overmind](https://github.com/DarthSim/overmind) (or any other Procfile runner)!
 
 ## Usage
 
@@ -46,6 +46,9 @@ First, put this in your `flake.nix`:
         procGroup = {
           redis = lib.getExe' pkgs.redis "redis-server";
         };
+
+        # OPTIONAL: switch the Procfile runner if desired.
+        procRunner = pkgs.honcho;
       };
     in {
       default = pkgs.mkShell {
@@ -89,6 +92,9 @@ Then run `nix develop`, `daemons &`, and you're good to go!
       }: {
         procfiles.daemons.processes = {
           redis = lib.getExe' pkgs.redis "redis-server";
+          
+          # OPTIONAL: switch the Procfile runner if desired.
+          procRunner = pkgs.honcho;
         };
 
         devShells.default = pkgs.mkShell {

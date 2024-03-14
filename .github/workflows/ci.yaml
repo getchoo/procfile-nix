@@ -23,6 +23,18 @@ jobs:
 
       - name: Run test script
         run: |
-          set -eux
+          function catch_error() {
+            echo "Job $1 failed!"
+            exit 1
+          }
 
-          nix develop ./test --command 'run-ci'
+          tests=(
+            "overmind"
+            "overmind-dft"
+            "honcho"
+          )
+
+          for test in "${tests[@]}"; do
+            nix develop ./test#"$test" --command 'run-ci' || catch_error "$test"
+            sleep 5 # this is to avoid race conditions with the current proc runner not exiting just yet
+          done
