@@ -43,6 +43,7 @@ First, put this in your `flake.nix`:
     }: let
       procfile = procfile-nix.lib.${system}.mkProcfileRunner {
         name = "daemons";
+
         procGroup = {
           redis = lib.getExe' pkgs.redis "redis-server";
         };
@@ -90,8 +91,10 @@ Then run `nix develop`, `daemons &`, and you're good to go!
         pkgs,
         ...
       }: {
-        procfiles.daemons.processes = {
-          redis = lib.getExe' pkgs.redis "redis-server";
+        procfiles.daemons = {
+          processes = {
+            redis = lib.getExe' pkgs.redis "redis-server";
+          };
           
           # OPTIONAL: switch the Procfile runner if desired.
           procRunner = pkgs.honcho;
