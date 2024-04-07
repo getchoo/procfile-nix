@@ -57,7 +57,8 @@ jobs:
           BRANCH: ${{ steps.branch.outputs.branch }}
         run: |
           if ! git diff --color=always --exit-code origin/main; then
-            git push -u origin "$BRANCH"
+            git fetch origin "$BRANCH" || true
+            git push --force-with-lease -u origin "$BRANCH"
 
             gh pr create \
               --base main \
