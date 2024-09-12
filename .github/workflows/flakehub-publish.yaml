@@ -23,7 +23,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@ab6bcb2d5af0e904d04aea750e2089e9dc4cbfdd # v13
 
       - name: Push to Flakehub
-        uses: DeterminateSystems/flakehub-push@150c971996b1d14eaba6790102041234f606379f # v4
+        uses: DeterminateSystems/flakehub-push@8da9e38b7e77f2b0a8aa08a22e57cc5c6316ea72 # v5
         with:
           visibility: "public"
           rolling: ${{ !startsWith(github.ref, 'refs/tags/v' )}}
